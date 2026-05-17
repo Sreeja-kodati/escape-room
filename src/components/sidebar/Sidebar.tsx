@@ -10,8 +10,6 @@ import type { GameState } from "../../types";
 import { formatTime } from "../../utils/formatTime";
 import { GlassCard } from "../ui/GlassCard";
 import { NeonButton } from "../ui/NeonButton";
-import { ProgressBar } from "../ui/ProgressBar";
-import { Spinner } from "../ui/Spinner";
 import { StatCard } from "./StatCard";
 
 interface SidebarProps {
@@ -20,7 +18,6 @@ interface SidebarProps {
   onUseHint: () => void;
   isOpen: boolean;
   onClose: () => void;
-  isLoading?: boolean;
 }
 
 export function Sidebar({
@@ -29,7 +26,6 @@ export function Sidebar({
   onUseHint,
   isOpen,
   onClose,
-  isLoading = false,
 }: SidebarProps) {
   return (
     <>
@@ -55,11 +51,7 @@ export function Sidebar({
             </h2>
           </div>
 
-          {game.isPlaying && (
-            <ProgressBar level={game.level} status={game.status} />
-          )}
-
-          <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <StatCard
               icon={<Trophy size={20} />}
               label="Score"
@@ -105,11 +97,10 @@ export function Sidebar({
               disabled={
                 !game.isPlaying ||
                 game.hintsRemaining <= 0 ||
-                game.status === "won" ||
-                isLoading
+                game.status === "won"
               }
             >
-              {isLoading ? <Spinner size="sm" /> : <Lightbulb size={16} />}
+              <Lightbulb size={16} />
               Use Hint ({game.hintsRemaining} left)
             </NeonButton>
           </GlassCard>
@@ -120,10 +111,9 @@ export function Sidebar({
               size="lg"
               fullWidth
               onClick={onStartGame}
-              disabled={isLoading}
               className="animate-fade-in"
             >
-              {isLoading ? <Spinner size="sm" /> : <Play size={20} />}
+              <Play size={20} />
               Start Game
             </NeonButton>
           )}

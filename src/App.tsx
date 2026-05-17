@@ -1,7 +1,4 @@
 import { useState } from "react";
-import { Confetti } from "./components/effects/Confetti";
-import { DangerFlash } from "./components/effects/DangerFlash";
-import { WinOverlay } from "./components/effects/WinOverlay";
 import { Background } from "./components/layout/Background";
 import { Header } from "./components/layout/Header";
 import { ChatPanel } from "./components/chat/ChatPanel";
@@ -18,9 +15,6 @@ export default function App() {
     setInput,
     isAiTyping,
     isSending,
-    isLoading,
-    feedback,
-    showConfetti,
     startGame,
     useHint,
     sendMessage,
@@ -35,18 +29,8 @@ export default function App() {
   return (
     <div className="relative flex min-h-dvh flex-col">
       <Background />
-      <DangerFlash active={feedback === "wrong"} />
-      <Confetti active={showConfetti} />
-      {game.status === "won" && (
-        <WinOverlay
-          score={game.score}
-          elapsedSeconds={game.elapsedSeconds}
-          onPlayAgain={resetGame}
-        />
-      )}
       <Header
         isPlaying={game.isPlaying}
-        isLoading={isLoading}
         onStartGame={handleStartGame}
         onToggleSidebar={() => setSidebarOpen((o) => !o)}
         sidebarOpen={sidebarOpen}
@@ -59,12 +43,11 @@ export default function App() {
           onUseHint={useHint}
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
-          isLoading={isLoading}
         />
 
-        <main className="flex min-h-0 flex-1 flex-col p-3 sm:p-4 lg:p-0">
+        <main className="flex min-h-0 flex-1 flex-col p-4 lg:p-0">
           {!game.isPlaying && messages.length <= 1 && (
-            <WelcomeHero onStartGame={handleStartGame} isLoading={isLoading} />
+            <WelcomeHero onStartGame={handleStartGame} />
           )}
 
           <div
@@ -83,7 +66,6 @@ export default function App() {
               isPlaying={game.isPlaying}
               isAiTyping={isAiTyping}
               isSending={isSending}
-              isLoading={isLoading}
               gameWon={game.status === "won"}
               onPlayAgain={resetGame}
             />

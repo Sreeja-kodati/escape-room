@@ -65,6 +65,5 @@ export function applyGeminiResponse(
     },
     levelAdvanced: false,
     gameWon: false,
-    wasWrongAnswer: true,
   };
 }

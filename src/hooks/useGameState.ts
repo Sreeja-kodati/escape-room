@@ -13,7 +13,7 @@ import {
   fetchGameStart,
   fetchHint,
 } from "../services/geminiApi";
-import type { ChatMessage, GameFeedback, GameState } from "../types";
+import type { ChatMessage, GameState } from "../types";
 import { INITIAL_GAME_STATE } from "../types";
 import { clearSession, loadSession, saveSession } from "../utils/storage";
 
@@ -53,29 +53,8 @@ export function useGameState() {
   const [input, setInput] = useState("");
   const [isAiTyping, setIsAiTyping] = useState(false);
   const [isSending, setIsSending] = useState(false);
-  const [feedback, setFeedback] = useState<GameFeedback>("none");
-  const [showConfetti, setShowConfetti] = useState(false);
   const messagesRef = useRef(messages);
-  const feedbackTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   messagesRef.current = messages;
-
-  const isLoading = isAiTyping || isSending;
-
-  const triggerFeedback = useCallback((next: GameFeedback) => {
-    if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
-
-    setFeedback(next);
-
-    if (next === "win") {
-      setShowConfetti(true);
-    }
-
-    const duration = next === "wrong" ? 600 : next === "win" ? 8000 : 1200;
-    feedbackTimeoutRef.current = setTimeout(() => {
-      setFeedback("none");
-      if (next === "win") setShowConfetti(false);
-    }, duration);
-  }, []);
 
   useEffect(() => {
     if (game.status === "idle" && messages.length <= 1) return;
@@ -95,12 +74,6 @@ export function useGameState() {
     return () => clearInterval(interval);
   }, [game.isPlaying]);
 
-  useEffect(() => {
-    return () => {
-      if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
-    };
-  }, []);
-
   const appendMessages = useCallback((...newMessages: ChatMessage[]) => {
     setMessages((prev) => [...prev, ...newMessages]);
   }, []);
@@ -113,25 +86,13 @@ export function useGameState() {
         toAdd.push(createSystemMessage(result.systemContent));
       }
 
-      const assistantTone = result.wasWrongAnswer
-        ? "danger"
-        : result.levelAdvanced || result.gameWon
-          ? "success"
-          : "default";
-
-      toAdd.push(
-        createAssistantMessage(
-          result.assistantContent,
-          true,
-          assistantTone,
-        ),
-      );
+      toAdd.push(createAssistantMessage(result.assistantContent, true));
 
       if (result.levelAdvanced && result.gameUpdates.level) {
         const intro =
           result.nextLevelIntro ??
           getLevelIntroMessage(result.gameUpdates.level).content;
-        toAdd.push(createAssistantMessage(intro, true, "success"));
+        toAdd.push(createAssistantMessage(intro, true));
       }
 
       appendMessages(...toAdd);
@@ -145,12 +106,8 @@ export function useGameState() {
         ...result.gameUpdates,
         ...(nextLevelName ? { levelName: nextLevelName } : {}),
       }));
-
-      if (result.gameWon) triggerFeedback("win");
-      else if (result.levelAdvanced) triggerFeedback("levelUp");
-      else if (result.wasWrongAnswer) triggerFeedback("wrong");
     },
-    [appendMessages, triggerFeedback],
+    [appendMessages],
   );
 
   const startGame = useCallback(async () => {
@@ -278,15 +235,12 @@ export function useGameState() {
   ]);
 
   const resetGame = useCallback(() => {
-    if (feedbackTimeoutRef.current) clearTimeout(feedbackTimeoutRef.current);
     clearSession();
     setGame({ ...INITIAL_GAME_STATE });
     setMessages(DEMO_MESSAGES);
     setInput("");
     setIsAiTyping(false);
     setIsSending(false);
-    setFeedback("none");
-    setShowConfetti(false);
   }, []);
 
   return {
@@ -296,9 +250,6 @@ export function useGameState() {
     setInput,
     isAiTyping,
     isSending,
-    isLoading,
-    feedback,
-    showConfetti,
     startGame,
     useHint,
     sendMessage,

@@ -17,7 +17,7 @@ const accentColors = {
 
 export function StatCard({ icon, label, value, accent = "cyan" }: StatCardProps) {
   return (
-    <GlassCard className="p-3.5 transition-all duration-300 hover:scale-[1.02] hover:neon-glow-cyan sm:p-4">
+    <GlassCard className="p-4 transition-transform duration-300 hover:scale-[1.02]">
       <div className="flex items-start justify-between gap-2">
         <div>
           <p className="text-xs font-medium uppercase tracking-widest text-slate-500">

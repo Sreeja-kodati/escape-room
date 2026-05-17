@@ -2,10 +2,6 @@ export type MessageRole = "user" | "assistant" | "system";
 
 export type GameStatus = "idle" | "playing" | "won";
 
-export type GameFeedback = "none" | "wrong" | "success" | "levelUp" | "win";
-
-export type MessageTone = "default" | "danger" | "success";
-
 export interface ChatMessage {
   id: string;
   role: MessageRole;
@@ -13,7 +9,6 @@ export interface ChatMessage {
   timestamp: Date;
   /** When true, assistant text reveals with a typewriter effect */
   animate?: boolean;
-  tone?: MessageTone;
 }
 
 export interface GameState {

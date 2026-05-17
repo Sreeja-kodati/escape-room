@@ -4,7 +4,6 @@ import type { ChatMessage } from "../../types";
 import { GlassCard } from "../ui/GlassCard";
 import { ChatBubble } from "./ChatBubble";
 import { MessageInput } from "./MessageInput";
-import { LoadingBar } from "../ui/LoadingBar";
 import { TypingIndicator } from "./TypingIndicator";
 
 interface ChatPanelProps {
@@ -15,7 +14,6 @@ interface ChatPanelProps {
   isPlaying: boolean;
   isAiTyping?: boolean;
   isSending?: boolean;
-  isLoading?: boolean;
   gameWon?: boolean;
   onPlayAgain?: () => void;
 }
@@ -28,7 +26,6 @@ export function ChatPanel({
   isPlaying,
   isAiTyping = false,
   isSending = false,
-  isLoading = false,
   gameWon = false,
   onPlayAgain,
 }: ChatPanelProps) {
@@ -48,20 +45,8 @@ export function ChatPanel({
   const inputDisabled = !isPlaying || isAiTyping || isSending || gameWon;
 
   return (
-    <GlassCard
-      strong
-      glow="cyan"
-      className="flex h-full min-h-0 flex-col overflow-hidden transition-all duration-500"
-    >
-      <LoadingBar
-        active={isLoading}
-        label={
-          isSending && !isAiTyping
-            ? "Transmitting…"
-            : "Neural link decoding…"
-        }
-      />
-      <div className="flex items-center gap-3 border-b border-white/5 px-4 py-3.5 sm:px-5 sm:py-4">
+    <GlassCard strong glow="cyan" className="flex h-full min-h-0 flex-col overflow-hidden">
+      <div className="flex items-center gap-3 border-b border-white/5 px-5 py-4">
         <MessageSquare className="h-5 w-5 text-[#00f5ff]" />
         <div>
           <h2 className="font-display text-sm font-semibold uppercase tracking-widest text-white">
@@ -73,7 +58,7 @@ export function ChatPanel({
 
       <div
         ref={scrollRef}
-        className="flex-1 space-y-4 overflow-y-auto px-3 py-4 scroll-smooth sm:px-5 sm:py-5"
+        className="flex-1 space-y-4 overflow-y-auto px-4 py-5 sm:px-5"
       >
         {messages.map((msg) => (
           <ChatBubble
@@ -86,12 +71,22 @@ export function ChatPanel({
       </div>
 
       <div className="border-t border-white/5 p-4 sm:p-5">
+        {gameWon && onPlayAgain && (
+          <div className="mb-3 flex justify-center">
+            <button
+              type="button"
+              onClick={onPlayAgain}
+              className="font-display text-sm font-semibold uppercase tracking-widest text-[#00f5ff] transition-colors hover:text-white"
+            >
+              Play Again
+            </button>
+          </div>
+        )}
         <MessageInput
           value={input}
           onChange={onInputChange}
           onSend={onSend}
           disabled={inputDisabled}
-          loading={isLoading}
           placeholder={
             gameWon
               ? "Mission complete!"

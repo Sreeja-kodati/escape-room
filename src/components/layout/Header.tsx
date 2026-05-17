@@ -1,10 +1,8 @@
 import { Lock, Menu, X } from "lucide-react";
 import { NeonButton } from "../ui/NeonButton";
-import { Spinner } from "../ui/Spinner";
 
 interface HeaderProps {
   isPlaying: boolean;
-  isLoading?: boolean;
   onStartGame: () => void;
   onToggleSidebar: () => void;
   sidebarOpen: boolean;
@@ -12,13 +10,12 @@ interface HeaderProps {
 
 export function Header({
   isPlaying,
-  isLoading = false,
   onStartGame,
   onToggleSidebar,
   sidebarOpen,
 }: HeaderProps) {
   return (
-    <header className="glass-strong sticky top-0 z-30 border-b border-white/5 px-3 py-2.5 transition-all duration-300 sm:px-6 sm:py-3">
+    <header className="glass-strong sticky top-0 z-30 border-b border-white/5 px-4 py-3 sm:px-6">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <button
@@ -51,22 +48,15 @@ export function Header({
               variant="cyan"
               size="sm"
               onClick={onStartGame}
-              disabled={isLoading}
               className="hidden sm:inline-flex"
             >
-              {isLoading ? <Spinner size="sm" /> : null}
               Start Game
             </NeonButton>
           )}
           <div className="hidden items-center gap-2 sm:flex">
-            <span
-              className={[
-                "h-2 w-2 rounded-full animate-pulse-glow",
-                isLoading ? "bg-[#00f5ff]" : isPlaying ? "bg-[#39ff14]" : "bg-slate-600",
-              ].join(" ")}
-            />
+            <span className="h-2 w-2 rounded-full bg-[#39ff14] animate-pulse-glow" />
             <span className="text-xs font-medium uppercase tracking-widest text-slate-500">
-              {isLoading ? "Syncing" : isPlaying ? "Live" : "Standby"}
+              {isPlaying ? "Live" : "Standby"}
             </span>
           </div>
         </div>

@@ -12,13 +12,6 @@ export function Background() {
       <div className="absolute left-1/2 top-0 h-64 w-64 -translate-x-1/2 rounded-full bg-[#a855f7]/6 blur-[80px]" />
 
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#050510]/80" />
-      <div
-        className="absolute inset-0 opacity-[0.03]"
-        style={{
-          backgroundImage:
-            "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,245,255,0.15) 2px, rgba(0,245,255,0.15) 4px)",
-        }}
-      />
     </div>
   );
 }

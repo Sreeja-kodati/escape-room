@@ -67,12 +67,10 @@ export function ChatBubble({ message, onTypewriterComplete }: ChatBubbleProps) {
           )}
           <div
             className={[
-              "rounded-2xl border px-4 py-3.5 text-[15px] leading-relaxed transition-all duration-300",
+              "rounded-2xl border px-4 py-3 text-[15px] leading-relaxed",
               config.bubble,
               message.role === "user" ? "rounded-tr-sm" : "rounded-tl-sm",
               isSystem ? "rounded-xl w-full" : "",
-              message.tone === "danger" ? "bubble-danger" : "",
-              message.tone === "success" ? "bubble-success" : "",
             ]
               .filter(Boolean)
               .join(" ")}

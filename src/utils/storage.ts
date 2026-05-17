@@ -8,7 +8,6 @@ interface StoredMessage {
   content: string;
   timestamp: string;
   animate?: boolean;
-  tone?: ChatMessage["tone"];
 }
 
 interface StoredSession {
@@ -47,7 +46,6 @@ export function saveSession(game: GameState, messages: ChatMessage[]): void {
         content: m.content,
         timestamp: m.timestamp.toISOString(),
         animate: m.animate,
-        tone: m.tone,
       })),
     };
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(payload));

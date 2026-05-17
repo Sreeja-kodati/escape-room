@@ -1,5 +1,5 @@
 import { getLevel, MAX_LEVEL } from "../data/levels";
-import type { ChatMessage, GameState, MessageTone } from "../types";
+import type { ChatMessage, GameState } from "../types";
 
 export interface EngineResult {
   assistantContent: string;
@@ -7,7 +7,6 @@ export interface EngineResult {
   gameUpdates: Partial<GameState>;
   levelAdvanced: boolean;
   gameWon: boolean;
-  wasWrongAnswer?: boolean;
   /** Gemini-generated intro for the next level (when advancing) */
   nextLevelIntro?: string;
 }
@@ -79,7 +78,6 @@ export function processUserMessage(
     },
     levelAdvanced: false,
     gameWon: false,
-    wasWrongAnswer: true,
   };
 }
 
@@ -106,7 +104,6 @@ export function createSystemMessage(content: string): ChatMessage {
 export function createAssistantMessage(
   content: string,
   animate = true,
-  tone: MessageTone = "default",
 ): ChatMessage {
   return {
     id: crypto.randomUUID(),
@@ -114,6 +111,5 @@ export function createAssistantMessage(
     content,
     timestamp: new Date(),
     animate,
-    tone,
   };
 }
