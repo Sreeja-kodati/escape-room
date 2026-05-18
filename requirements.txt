@@ -4,6 +4,8 @@
 streamlit>=1.26
 python-dotenv>=1.0
 google-genai>=0.4.0
+websockets<15
+
 
 # Add other packages only if required and avoid strict pins that conflict
 # with transitive dependencies (e.g., websockets, protobuf).
