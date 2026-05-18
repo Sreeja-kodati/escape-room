@@ -13,8 +13,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 
 import streamlit as st
-from google.genai import Client
-from google.genai.types import GenerateContentConfig
+import google.generativeai as genai
 
 # Load environment variables
 load_dotenv()
@@ -106,13 +105,15 @@ def get_initial_game_state() -> dict:
 # Gemini AI Integration
 # ============================================================================
 
-def get_gemini_client() -> Client:
-    """Initialize and return the Gemini client."""
+@st.cache_resource
+def get_gemini_client():
+    """Initialize and configure the Gemini API (cached)."""
     api_key = os.getenv("GOOGLE_API_KEY")
     if not api_key:
-        st.error("GOOGLE_API_KEY is not set. Please add it to your .env file.")
+        st.error("❌ GOOGLE_API_KEY is not set. Please add it to your .env file.")
         st.stop()
-    return Client(api_key=api_key)
+    genai.configure(api_key=api_key)
+    return genai
 
 
 def build_narrator_system_prompt(game: dict) -> str:
@@ -242,28 +243,30 @@ def parse_gemini_response(text: str) -> dict:
 
 
 def gemini_generate(system_prompt: str, user_prompt: str) -> dict:
-    """Send a prompt to Gemini and parse the response."""
-    client = get_gemini_client()
-
-    config = GenerateContentConfig(
-        temperature=0.85,
-        max_output_tokens=1024,
-        response_mime_type="application/json",
-    )
-
-    # Combine system instruction with user prompt
-    full_prompt = f"{system_prompt}\n\n{user_prompt}"
-
-    response = client.models.generate_content(
-        model="gemini-2.0-flash",
-        contents=full_prompt,
-        config=config,
-    )
-
-    if not response.text:
-        raise ValueError("Empty response from Gemini")
-
-    return parse_gemini_response(response.text)
+    try:
+        genai_client = get_gemini_client()
+        
+        # Use the generative model with system instruction
+        model = genai_client.GenerativeModel(
+            model_name="gemini-2.0-flash",
+            system_instruction=system_prompt,
+            generation_config={
+                "temperature": 0.85,
+                "max_output_tokens": 1024,
+                "response_mime_type": "application/json",
+            },
+        )
+        
+        response = model.generate_content(user_prompt)
+        
+        if not response.text:
+            raise ValueError("Empty response from Gemini")
+        
+        return parse_gemini_response(response.text)
+    
+    except Exception as e:
+        st.error(f"❌ Gemini API Error: {str(e)}")
+        raise
 
 
 # ============================================================================
@@ -380,27 +383,67 @@ def render_sidebar():
         game = st.session_state.game_state
 
         # Game Stats
-        st.metric("Level", f"{game['level']}/{MAX_LEVEL}")
-        st.metric("Score", game["score"])
-        st.metric("Hints Remaining", game["hints_remaining"])
-
-        # Timer
-        if st.session_state.game_started and st.session_state.start_time:
-            elapsed = int(time.time() - st.session_state.start_time)
-            st.metric("Time Elapsed", f"{elapsed}s")
-            # Auto-refresh for timer
-            time.sleep(0.1)
-            st.rerun()
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("Level", f"{game['level']}/{MAX_LEVEL}")
+            st.metric("Score", game["score"])
+        with col2:
+            st.metric("Hints Left", game["hints_remaining"])
+            if st.session_state.game_started and st.session_state.start_time:
+                elapsed = int(time.time() - st.session_state.start_time)
+                st.metric("Elapsed", f"{elapsed}s")
 
         st.divider()
 
+        # Current Level Info
+        level_data = get_level(game["level"])
+        st.markdown(f"**📍 {level_data['name']}**")
+
         # Game Status
         if game["status"] == "won":
-            st.success("🎉 You escaped!")
+            st.success("🎉 You escaped! Great job!")
         elif game["is_playing"]:
             st.info("🎮 Game in progress")
         else:
-            st.warning("Press START to begin")
+            st.warning("Press START in the main area to begin")
+
+        st.divider()
+
+        # Hint button
+        if (st.session_state.game_started and 
+            game["is_playing"] and 
+            game["status"] != "won" and
+            game["hints_remaining"] > 0):
+            
+            if st.button("💡 Get Hint", use_container_width=True):
+                with st.spinner("Analyzing the puzzle..."):
+                    try:
+                        history = [
+                            {"role": m["role"], "content": m["content"]}
+                            for m in st.session_state.chat_messages
+                        ]
+                        
+                        hint_tier = game["hints_used"]  # 0, 1, or 2
+                        system_prompt = build_narrator_system_prompt(game)
+                        user_prompt = build_hint_user_prompt(game, history, hint_tier)
+                        
+                        gemini_response = gemini_generate(system_prompt, user_prompt)
+                        
+                        # Update game state
+                        game["hints_used"] += 1
+                        game["hints_remaining"] -= 1
+                        game["score"] = max(0, game["score"] - 10)  # Hint penalty
+                        
+                        # Add hint to chat
+                        add_chat_message("assistant", f"💡 **Hint:** {gemini_response['narrative']}")
+                        
+                    except Exception as e:
+                        st.error(f"Error getting hint: {str(e)}")
+                
+                st.rerun()
+
+        elif game["hints_remaining"] <= 0 and game["is_playing"]:
+            st.warning("No hints remaining!")
 
         st.divider()
 
@@ -418,7 +461,7 @@ def render_chat():
     st.title("🔓 NEON VAULT")
     st.subheader("A Cyberpunk Escape Room Experience")
 
-    # Display chat messages
+    # Display chat messages in a scrollable container
     chat_container = st.container()
     with chat_container:
         for msg in st.session_state.chat_messages:
@@ -427,33 +470,26 @@ def render_chat():
                     st.write(msg["content"])
             elif msg["role"] == "assistant":
                 with st.chat_message("assistant"):
-                    if msg.get("animate", False):
-                        # Typewriter effect placeholder
-                        placeholder = st.empty()
-                        full_text = msg["content"]
-                        for i in range(len(full_text) + 1):
-                            placeholder.markdown(full_text[:i] + "▌")
-                            time.sleep(0.02)
-                        placeholder.markdown(full_text)
-                    else:
-                        st.write(msg["content"])
+                    st.markdown(msg["content"])
             elif msg["role"] == "system":
                 with st.chat_message("system"):
                     st.info(msg["content"])
 
-    # Chat input
-    if st.session_state.game_state["is_playing"] and st.session_state.game_state["status"] != "won":
-        if prompt := st.chat_input("What do you do?"):
-            # Add user message
-            add_chat_message("user", prompt)
+    st.divider()
 
-            # Process with Gemini
-            with st.spinner("The room responds..."):
+    # Chat input
+    game = st.session_state.game_state
+    if game["is_playing"] and game["status"] != "won":
+        if prompt := st.chat_input("What do you do?", key="chat_input"):
+            # Add user message immediately
+            add_chat_message("user", prompt)
+            
+            # Show spinner while processing
+            with st.spinner("🔄 The room responds..."):
                 try:
-                    game = st.session_state.game_state
                     history = [
                         {"role": m["role"], "content": m["content"]}
-                        for m in st.session_state.chat_messages
+                        for m in st.session_state.chat_messages[:-1]  # Exclude the message we just added
                     ]
 
                     system_prompt = build_narrator_system_prompt(game)
@@ -466,7 +502,7 @@ def render_chat():
                     update_game_state(result["game_updates"])
 
                     # Add assistant response
-                    add_chat_message("assistant", result["assistant_content"], animate=True)
+                    add_chat_message("assistant", result["assistant_content"])
 
                     # Add system message if any
                     if result["system_content"]:
@@ -474,19 +510,23 @@ def render_chat():
 
                     # Handle level advancement
                     if result["level_advanced"] and result["next_level_intro"]:
-                        time.sleep(1)
-                        add_chat_message("assistant", result["next_level_intro"], animate=True)
+                        time.sleep(0.5)
+                        add_chat_message("assistant", f"\n\n{result['next_level_intro']}")
 
                     # Check for game win
                     if result["game_won"]:
+                        time.sleep(0.5)
                         st.balloons()
 
                 except Exception as e:
-                    st.error(f"Error: {str(e)}")
+                    add_chat_message("system", f"❌ Error: {str(e)}")
 
             st.rerun()
-    elif st.session_state.game_state["status"] == "won":
+    
+    elif game["status"] == "won":
         st.chat_input("Congratulations! Start a new game to play again.", disabled=True)
+        st.success("🎉 Game Complete! Final Score: " + str(game["score"]))
+    
     else:
         st.chat_input("Press START to begin your escape...", disabled=True)
 

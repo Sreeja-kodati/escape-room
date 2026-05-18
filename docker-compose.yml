@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  # Streamlit web app
+  streamlit:
+    build: .
+    ports:
+      - "8501:8501"
+    environment:
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - STREAMLIT_SERVER_HEADLESS=true
+    volumes:
+      - .:/app
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+# To run:
+# 1. Create .env file with GOOGLE_API_KEY
+# 2. docker-compose up -d
+# 3. Open http://localhost:8501
